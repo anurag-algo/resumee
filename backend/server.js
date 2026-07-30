@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-import app from './src/app.js';
+import dotenv from "dotenv";
+import app from "./src/app.js";
 
 dotenv.config();
 
@@ -12,10 +12,10 @@ const server = app.listen(PORT, () => {
 const shutdown = (signal) => {
   console.log(`Received ${signal}. Shutting down gracefully...`);
   server.close(() => {
-    console.log('Server closed.');
+    console.log("Server closed.");
     process.exit(0);
   });
 };
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
