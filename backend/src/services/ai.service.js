@@ -1,33 +1,44 @@
-import NodeCache from 'node-cache';
-import crypto from 'crypto';
+import NodeCache from "node-cache";
+import crypto from "crypto";
+import { openrouter } from "../config/openrouter.js";
 
-import { gemini } from "../config/gemini.js";
+// Initialize cache with a 24-hour time-to-live (86400 seconds)
+const cache = new NodeCache({ stdTTL: 86400 });
 
-//initializing cache with 24 hour TTL  
-const cache = new NodeCache({ stdTTL: 60 * 60 * 24, checkperiod: 120 });
-
-//Generate a unique MD5 hash for the given resume and job description pair
+/**
+ * Generates a unique MD5 hash for the given resume and job description pair.
+ */
 const generateCacheKey = (resumeText, jobDescription) => {
   const normalizedInput = `${resumeText.trim().toLowerCase()}_${jobDescription.trim().toLowerCase()}`;
   return crypto.createHash("md5").update(normalizedInput).digest("hex");
 };
 
-//Utility: Pause execution for given milliseconds
+/**
+ * Utility: Pauses execution for given milliseconds
+ */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-//Helper funnction to call an async operation with exponential backoff retry logic..
+/**
+ * Helper function to call an async operation with exponential backoff retry logic.
+ */
 const callWithRetry = async (fn, retries = 3, delay = 2000) => {
   try {
     return await fn();
   } catch (error) {
-    const isRateLimmited = error?.status === 429 || error?.statusCode === 429 || error?.message?.includes("429") || error?.message?.includes("RESOURCE_EXHAUSTED");
+    const isRateLimited =
+      error?.status === 429 ||
+      error?.statusCode === 429 ||
+      error?.message?.includes("429");
 
-    if (retries > 0 && isTateLimited) {
-      console.error(`⚠️ Rate limit hit (429). Retrying in ${delay / 1000}s... (${retries} retries remaining)`);
+    if (retries > 0 && isRateLimited) {
+      console.warn(
+        `⚠️ Rate limit hit (429). Retrying in ${delay / 1000}s... (${retries} retries remaining)`
+      );
       await sleep(delay);
-      //Double the delay for the next attempt (exponential backoff)
+      // Double the delay for the next attempt (exponential backoff: 2s -> 4s -> 8s)
       return callWithRetry(fn, retries - 1, delay * 2);
     }
+
     throw error;
   }
 };
@@ -41,7 +52,7 @@ const analyzeResumeWithGemini = async (resumeText, jobDescription) => {
     throw new Error("Job description is required.");
   }
 
-  //Check if the analysis already exists in the cache
+  // 1. Check Memory Cache first
   const cacheKey = generateCacheKey(resumeText, jobDescription);
   if (cache.has(cacheKey)) {
     console.log("⚡ Serving analysis result directly from Memory Cache (0 API calls used)");
@@ -71,53 +82,53 @@ Rules:
 - matchingSkills and missingKeywords must be arrays of strings.
 - strengths must be an array of strings.
 - areasOfImprovement must be an array of objects with category, issue, and suggestedFix strings.
-- Do not include markdown, commentary, or extra keys.`;
+- Respond ONLY with valid raw JSON without markdown formatting or backticks.`;
 
-
-  //wrap gemini API cal with Exponential Backoff Retry
-  const executeGeminiCall = async () => {
-    //call gemini API if not found in cache
-    return await gemini.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [
+  // 2. Define execution call for OpenRouter
+  const executeOpenRouterCall = async () => {
+    return await openrouter.chat.completions.create({
+      model: "openrouter/free",
+      messages: [
+        { role: "system", content: systemPrompt },
         {
           role: "user",
-          parts: [
-            {
-              text: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`,
-            },
-          ],
+          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`,
         },
       ],
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-      },
+      response_format: { type: "json_object" },
+      temperature: 0.2,
     });
-
-    try {
-      //Attempt execution with up to 3 retries starting at a 2-second delay
-      const response = await callWithRetry(executeGeminiCall, 3, 2000);
-      const rawText = response?.text ?? "";
-      if (!rawText.trim()) {
-        throw new Error("Gemini returned an empty response.");
-      }
-      console.log("Response from Gemini:", response);
-
-      const parsedData = JSON.parse(rawText);
-
-      //Store parsed result in cache before returning
-      cache.set(cacheKey, parsedData);
-      console.log("✅ Analysis result cached for future use");
-      return parsedData;
-    } catch (error) {
-      if (error?.status === 429 || error?.message?.includes("429")) {
-        throw new Error("Gemini API rate limit reached after multiple attempts. Please try again in 1 minute.");
-      }
-      throw error;
-    }
   };
-}
+
+  try {
+    // 3. Execute with up to 3 retries starting at 2-second delay
+    const response = await callWithRetry(executeOpenRouterCall, 3, 2000);
+    const rawText = response.choices[0]?.message?.content ?? "";
+
+    if (!rawText.trim()) {
+      throw new Error("OpenRouter returned an empty response.");
+    }
+
+    // Clean potential markdown backticks just in case
+    const cleanedText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const parsedData = JSON.parse(cleanedText);
+
+    // 4. Save result to Memory Cache
+    cache.set(cacheKey, parsedData);
+    console.log("💾 Saved new analysis result to Memory Cache");
+
+    return parsedData;
+
+  } catch (error) {
+    console.error("OpenRouter API Error:", error);
+
+    if (error?.status === 429 || error?.message?.includes("429")) {
+      throw new Error("API rate limit reached after multiple attempts. Please try again in a moment.");
+    }
+
+    throw new Error(error.message || "Failed to analyze resume with AI.");
+  }
+};
 
 export { analyzeResumeWithGemini };
 export default analyzeResumeWithGemini;
