@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle, FileText, Sparkles } from "lucide-react";
 import AnalysisResults from "../components/AnalysisResults.js";
 import FileUpload from "../components/FileUpload.js";
+import DemoReport from "../components/DemoReport.js";
 
 export default function Home() {
   const [analysis, setAnalysis] = useState(null);
@@ -79,6 +80,10 @@ export default function Home() {
           />
         )}
       </main>
+
+      <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <DemoReport />
+      </div>
     </div>
   );
 }

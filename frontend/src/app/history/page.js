@@ -62,7 +62,7 @@ export default function HistoryPage() {
       } catch (err) {
         setError(
           err?.response?.data?.message ||
-            "Failed to load analysis history. Please try again.",
+          "Failed to load analysis history. Please try again.",
         );
       } finally {
         setLoading(false);
@@ -84,7 +84,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-full bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       <section className="border-b border-slate-800 bg-slate-950">
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="animate-fade-in-up flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
