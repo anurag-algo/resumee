@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import authRoutes from "./routes/auth.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import errorHandler from "./middlewares/error.middleware.js";
 
@@ -20,6 +21,7 @@ app.get("/health", (req, res) => {
     });
 });
 
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/resumes", resumeRoutes);
 
 app.use(errorHandler);

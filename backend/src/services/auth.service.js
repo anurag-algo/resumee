@@ -29,7 +29,13 @@ const registerUser = async ({ name, email, password }) => {
   const userResponse = user.toObject();
   delete userResponse.password;
 
-  return userResponse;
+  const token = jwt.sign(
+    { userId: user._id, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" },
+  );
+
+  return { token, user: userResponse };
 };
 
 const loginUser = async ({ email, password }) => {
@@ -59,7 +65,15 @@ const loginUser = async ({ email, password }) => {
     { expiresIn: "7d" },
   );
 
-  return { token, user: { userId: user._id, email: user.email } };
+  return {
+    token,
+    user: {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    },
+  };
 };
 
 const verifyGoogleToken = async (credentialToken) => {
@@ -108,7 +122,15 @@ const verifyGoogleToken = async (credentialToken) => {
     { expiresIn: "7d" },
   );
 
-  return { token, user: { userId: user._id, email: user.email } };
+  return {
+    token,
+    user: {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    },
+  };
 };
 
 export { loginUser, registerUser, verifyGoogleToken };

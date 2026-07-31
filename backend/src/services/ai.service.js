@@ -20,8 +20,9 @@ Required output schema:
   "strengths": [],
   "areasOfImprovement": [
     {
-      "area": "",
-      "suggestion": ""
+      "category": "",
+      "issue": "",
+      "suggestedFix": ""
     }
   ]
 }
@@ -30,11 +31,11 @@ Rules:
 - atsScore must be an integer from 0 to 100.
 - matchingSkills and missingKeywords must be arrays of strings.
 - strengths must be an array of strings.
-- areasOfImprovement must be an array of objects with area and suggestion strings.
+- areasOfImprovement must be an array of objects with category, issue, and suggestedFix strings.
 - Do not include markdown, commentary, or extra keys.`;
 
   const response = await gemini.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.5-flash",
     contents: [
       {
         role: "user",
@@ -50,6 +51,8 @@ Rules:
       responseMimeType: "application/json",
     },
   });
+
+  console.log(response)
 
   const rawText = response?.text ?? "";
 

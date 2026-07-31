@@ -51,5 +51,51 @@ const analyzeResumeHandler = async (req, res, next) => {
   }
 };
 
-export { analyzeResumeHandler };
+const getHistoryHandler = async (req, res, next) => {
+  try {
+    const analyses = await Analysis.find({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .select("jobTitle atsScore createdAt")
+      .lean();
+
+    res.status(200).json(
+      createApiResponse({
+        statusCode: 200,
+        message: "Analysis history fetched successfully.",
+        data: { analyses },
+      }),
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAnalysisByIdHandler = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const analysis = await Analysis.findOne({
+      _id: id,
+      userId: req.user.userId,
+    }).lean();
+
+    if (!analysis) {
+      const error = new Error("Analysis not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json(
+      createApiResponse({
+        statusCode: 200,
+        message: "Analysis fetched successfully.",
+        data: { analysis },
+      }),
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { analyzeResumeHandler, getAnalysisByIdHandler, getHistoryHandler };
 export default analyzeResumeHandler;
