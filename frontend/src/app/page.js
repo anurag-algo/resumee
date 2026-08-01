@@ -1,14 +1,13 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
 import { useState } from "react";
 import { AlertTriangle, FileText, Sparkles } from "lucide-react";
 import AnalysisResults from "../components/AnalysisResults.js";
 import FileUpload from "../components/FileUpload.js";
 import DemoReport from "../components/DemoReport.js";
 
+
 export default function Home() {
-  const pathname = usePathname();
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState("");
 

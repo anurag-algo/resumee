@@ -1,5 +1,6 @@
 import express from "express";
 import upload from "../middlewares/multer.middleware.js";
+import requireCredits from "../middlewares/credits.middleware.js";
 import {
   analyzeResumeHandler,
   getAnalysisByIdHandler,
@@ -13,6 +14,7 @@ router.post(
   "/analyze",
   authenticateUser,
   upload.single("resume"),
+  requireCredits(10),
   analyzeResumeHandler,
 );
 

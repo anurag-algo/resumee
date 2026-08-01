@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.model.js";
+import { createWallet } from "./wallet.service.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -25,6 +26,13 @@ const registerUser = async ({ name, email, password }) => {
     email: email.toLowerCase(),
     password: hashedPassword,
   });
+
+  // Provision welcome credits — wrapped so a wallet failure never breaks auth
+  try {
+    await createWallet(user._id);
+  } catch (walletError) {
+    console.error("⚠️  Failed to create wallet for new user:", walletError.message);
+  }
 
   const userResponse = user.toObject();
   delete userResponse.password;
@@ -101,6 +109,8 @@ const verifyGoogleToken = async (credentialToken) => {
     user = await User.findOne({ email: payload.email.toLowerCase() });
   }
 
+  const isNewUser = !user;
+
   if (!user) {
     user = await User.create({
       googleId: payload.sub,
@@ -108,6 +118,13 @@ const verifyGoogleToken = async (credentialToken) => {
       name: payload.name || payload.given_name || "Google User",
       avatar: payload.picture,
     });
+
+    // Provision welcome credits for new Google OAuth users — only on first creation
+    try {
+      await createWallet(user._id);
+    } catch (walletError) {
+      console.error("⚠️  Failed to create wallet for new Google user:", walletError.message);
+    }
   } else if (!user.googleId) {
     user.googleId = payload.sub;
     user.avatar = payload.picture || user.avatar;

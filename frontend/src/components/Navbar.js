@@ -5,14 +5,17 @@ import Link from "next/link.js";
 import { usePathname, useRouter } from "next/navigation.js";
 import {
   ChevronDown,
+  CreditCard,
   History,
   LogIn,
   LogOut,
   Sparkles,
   UserCircle,
   UserPlus,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
+import { useWallet } from "../context/WalletContext.js";
 
 const getInitials = (user) => {
   const source = user?.name || user?.email || "User";
@@ -27,9 +30,11 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { wallet } = useWallet();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  const balance = wallet?.balance ?? null;
   const displayName = user?.name || "Resume Analyst";
   const displayEmail = user?.email || "Signed in";
   const initials = useMemo(() => getInitials(user), [user]);
@@ -65,6 +70,7 @@ export default function Navbar() {
   const navLinks = [
     { href: "/", label: "Analyze" },
     { href: "/history", label: "History", icon: History },
+    { href: "/wallet", label: "Wallet", icon: Wallet },
   ];
 
   return (
@@ -124,9 +130,12 @@ export default function Navbar() {
                 <span className="block max-w-40 truncate text-sm font-semibold text-slate-100">
                   {displayName}
                 </span>
-                <span className="block max-w-40 truncate text-xs text-slate-400">
-                  {displayEmail}
-                </span>
+                {/* Credit badge */}
+                {balance !== null && (
+                  <span className="block text-xs font-medium text-cyan-300">
+                    🪙 {balance.toLocaleString()} Credits
+                  </span>
+                )}
               </span>
               <ChevronDown
                 aria-hidden="true"
@@ -169,6 +178,11 @@ export default function Navbar() {
                     <p className="truncate text-xs text-slate-400">
                       {displayEmail}
                     </p>
+                    {balance !== null && (
+                      <p className="mt-0.5 text-xs font-semibold text-cyan-300">
+                        🪙 {balance.toLocaleString()} Credits
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -191,11 +205,28 @@ export default function Navbar() {
 
                 <div className="rounded-xl bg-slate-950/70 px-3 py-3">
                   <p className="text-xs font-medium uppercase text-slate-500">
-                    Profile
+                    Credits
                   </p>
-                  <p className="mt-1 text-sm text-slate-300">
-                    Your analyses are tied to this account session.
-                  </p>
+                  {balance !== null ? (
+                    <p className="mt-1 text-sm text-slate-300">
+                      You have{" "}
+                      <span className="font-bold text-cyan-300">
+                        {balance.toLocaleString()} credits
+                      </span>{" "}
+                      available.
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-slate-300">
+                      Loading credits...
+                    </p>
+                  )}
+                  <Link
+                    href="/wallet"
+                    className="mt-2 flex items-center gap-1.5 text-xs font-medium text-cyan-400 hover:text-cyan-300"
+                  >
+                    <CreditCard aria-hidden="true" size={12} />
+                    Buy more credits →
+                  </Link>
                 </div>
 
                 <button

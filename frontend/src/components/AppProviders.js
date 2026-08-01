@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "../context/AuthContext.js";
+import { WalletProvider } from "../context/WalletContext.js";
 
 const AppConfigContext = createContext({
   googleClientId: "",
@@ -15,19 +16,21 @@ export default function AppProviders({ children, googleClientId = "" }) {
     isGoogleAuthEnabled: Boolean(googleClientId),
   };
 
+  const wrappedChildren = (
+    <AppConfigContext.Provider value={config}>
+      <AuthProvider>
+        <WalletProvider>{children}</WalletProvider>
+      </AuthProvider>
+    </AppConfigContext.Provider>
+  );
+
   if (!googleClientId) {
-    return (
-      <AppConfigContext.Provider value={config}>
-        <AuthProvider>{children}</AuthProvider>
-      </AppConfigContext.Provider>
-    );
+    return wrappedChildren;
   }
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      <AppConfigContext.Provider value={config}>
-        <AuthProvider>{children}</AuthProvider>
-      </AppConfigContext.Provider>
+      {wrappedChildren}
     </GoogleOAuthProvider>
   );
 }
